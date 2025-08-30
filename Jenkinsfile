@@ -2,23 +2,22 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS_ID = 'Phuongtest1'   // ID Credential trong Jenkins
-        GIT_REPO = 'https://github.com/vipvippro608-alt/phuongtest.git'
-        GIT_BRANCH = 'main'
+        GIT_EMAIL = "jenkins-bot@example.com"
+        GIT_NAME  = "Jenkins Bot"
     }
 
     parameters {
-        choice(name: 'ACTION', choices: ['delete', 'add'], description: 'Chọn hành động: delete hoặc add')
-        string(name: 'FILE_NAME', defaultValue: 'example.txt', description: 'Tên file cần thêm hoặc xoá')
-        text(name: 'FILE_CONTENT', defaultValue: 'Nội dung mặc định cho file mới', description: 'Chỉ dùng khi ACTION=add')
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Nhập tên branch để push thay đổi (nếu chưa có sẽ tạo mới)')
+        string(name: 'FILE_NAME', defaultValue: 'ok.txt', description: 'Tên file cần thêm/xoá')
+        choice(name: 'ACTION', choices: ['add', 'delete'], description: 'Chọn hành động với file')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: "${GIT_BRANCH}",
-                    url: "${GIT_REPO}",
-                    credentialsId: "${GIT_CREDENTIALS_ID}"
+                git branch: "${params.BRANCH_NAME}", 
+                    url: 'https://github.com/vipvippro608-alt/phuongtest.git',
+                    credentialsId: 'Phuongtest1'
             }
         }
 
@@ -26,15 +25,11 @@ pipeline {
             steps {
                 script {
                     if (params.ACTION == 'delete') {
-                        sh """
-                            echo "Deleting file: ${FILE_NAME}"
-                            rm -f ${FILE_NAME} || true
-                        """
-                    } else if (params.ACTION == 'add') {
-                        sh """
-                            echo "Adding file: ${FILE_NAME}"
-                            echo "${FILE_CONTENT}" > ${FILE_NAME}
-                        """
+                        echo "Deleting file: ${params.FILE_NAME}"
+                        sh "rm -f ${params.FILE_NAME}"
+                    } else {
+                        echo "Adding file: ${params.FILE_NAME}"
+                        sh "echo 'Tự động tạo bởi Jenkins' > ${params.FILE_NAME}"
                     }
                 }
             }
@@ -42,17 +37,26 @@ pipeline {
 
         stage('Commit & Push') {
             steps {
-                withCredentials([string(credentialsId: "${GIT_CREDENTIALS_ID}", variable: 'GIT_TOKEN')]) {
-                    sh '''
-                        git config user.name "jenkins-bot"
-                        git config user.email "jenkins-bot@example.com"
+                withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'TOKEN')]) {
+                    sh """
+                        git config user.email "${GIT_EMAIL}"
+                        git config user.name "${GIT_NAME}"
 
-                        git add -A
-                        git commit -m "Auto: ${ACTION} file ${FILE_NAME}" || echo "Nothing to commit"
+                        # Kiểm tra branch local, nếu chưa có thì tạo
+                        if ! git show-ref --verify --quiet refs/heads/${params.BRANCH_NAME}; then
+                          echo "Branch ${params.BRANCH_NAME} chưa có local -> tạo mới"
+                          git checkout -b ${params.BRANCH_NAME}
+                        else
+                          git checkout ${params.BRANCH_NAME}
+                        fi
 
-                        git remote set-url origin https://x-access-token:${GIT_TOKEN}@github.com/vipvippro608-alt/phuongtest.git
-                        git push origin ${GIT_BRANCH}
-                    '''
+                        git add .
+                        git commit -m "Auto ${params.ACTION} ${params.FILE_NAME} via Jenkins" || echo "No changes to commit"
+
+                        # Push bằng token
+                        git remote set-url origin https://$TOKEN@github.com/vipvippro608-alt/phuongtest.git
+                        git push origin ${params.BRANCH_NAME}
+                    """
                 }
             }
         }
