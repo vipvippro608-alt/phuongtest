@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS_ID = 'Phuongtest'   // ID Credential trong Jenkins
+        GIT_CREDENTIALS_ID = 'Phuongtest1'   // ID Credential trong Jenkins
         GIT_REPO = 'https://github.com/vipvippro608-alt/phuongtest.git'
         GIT_BRANCH = 'main'
     }
