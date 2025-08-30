@@ -2,22 +2,22 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Nhập tên branch để push thay đổi (nếu chưa có sẽ tạo mới)')
-        string(name: 'FILE_NAME', defaultValue: 'ok.txt', description: 'Tên file cần thêm/xoá')
-        choice(name: 'ACTION', choices: ['add', 'delete'], description: 'Chọn hành động với file')
-        text(name: 'FILE_CONTENT', defaultValue: 'Nội dung mặc định...', description: 'Nhập nội dung file khi chọn add')
+        choice(name: 'ACTION', choices: ['add', 'delete'], description: 'Chọn hành động')
+        string(name: 'FILE_NAME', defaultValue: 'ok.txt', description: 'Tên file để thêm hoặc xoá')
+        text(name: 'FILE_CONTENT', defaultValue: 'Hello Jenkins', description: 'Nội dung file khi thêm')
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Tên branch Git')
     }
 
     environment {
-        GIT_CREDENTIALS = credentials('Phuongtest1') // cần cấu hình trước trong Jenkins
+        REPO_URL = "https://github.com/vipvippro608-alt/phuongtest.git"
+        GIT_USER = "vipvippro608-alt"
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: "${params.BRANCH_NAME}",
-                    url: 'https://github.com/vipvippro608-alt/phuongtest.git',
-                    credentialsId: 'Phuongtest1'
+                    url: "${env.REPO_URL}"
             }
         }
 
@@ -37,13 +37,13 @@ pipeline {
 
         stage('Commit & Push') {
             steps {
-                withCredentials([string(credentialsId: 'Phuongtest-token', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([string(credentialsId: 'Phuongtest1', variable: 'GIT_TOKEN')]) {
                     sh """
                         git config user.name "Jenkins Bot"
                         git config user.email "jenkins-bot@example.com"
                         git add .
-                        git commit -m "Auto ${params.ACTION} file ${params.FILE_NAME}" || echo "No changes to commit"
-                        git push https://oauth2:${GITHUB_TOKEN}@github.com/vipvippro608-alt/phuongtest.git ${params.BRANCH_NAME}
+                        git commit -m "Jenkins ${params.ACTION} file ${params.FILE_NAME}" || echo "Nothing to commit"
+                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/${GIT_USER}/phuongtest.git ${params.BRANCH_NAME}
                     """
                 }
             }
