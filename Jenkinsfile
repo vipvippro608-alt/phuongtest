@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/vipvippro608-alt/phuongtest.git', branch: 'main', credentialsId: 'github-creds'
+                git url: 'https://github.com/vipvippro608-alt/phuongtest.git', branch: 'main', credentialsId: 'Phuongtest'
             }
         }
 
