@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'ACTION', choices: ['add', 'delete'], description: 'Chọn hành động')
-        string(name: 'FILE_NAME', defaultValue: 'ok.txt', description: 'Tên file để thêm hoặc xoá')
-        text(name: 'FILE_CONTENT', defaultValue: 'Hello Jenkins', description: 'Nội dung file khi thêm')
+        choice(name: 'ACTION', choices: ['add', 'delete', 'view'], description: 'Chọn hành động')
+        string(name: 'FILE_NAME', defaultValue: 'ok.txt', description: 'Tên file để thêm hoặc xoá (bỏ qua nếu view)')
+        text(name: 'FILE_CONTENT', defaultValue: 'Hello Jenkins', description: 'Nội dung file khi thêm (bỏ qua nếu xoá hoặc view)')
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Tên branch Git')
     }
 
@@ -30,12 +30,21 @@ pipeline {
                     } else if (params.ACTION == 'delete') {
                         echo "Deleting file: ${params.FILE_NAME}"
                         sh "rm -f ${params.FILE_NAME}"
+                    } else if (params.ACTION == 'view') {
+                        echo "Listing all files and folders in branch ${params.BRANCH_NAME}"
+                        sh "ls -la"
                     }
                 }
             }
         }
 
         stage('Commit & Push') {
+            when {
+                anyOf {
+                    expression { params.ACTION == 'add' }
+                    expression { params.ACTION == 'delete' }
+                }
+            }
             steps {
                 withCredentials([string(credentialsId: 'Phuongtest1', variable: 'GIT_TOKEN')]) {
                     sh """
