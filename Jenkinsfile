@@ -9,7 +9,7 @@ pipeline {
     }
 
     environment {
-        GIT_CREDENTIALS = credentials('Phuongtest-token') // cần cấu hình trước trong Jenkins
+        GIT_CREDENTIALS = credentials('Phuongtest1') // cần cấu hình trước trong Jenkins
     }
 
     stages {
