@@ -1,37 +1,57 @@
 pipeline {
     agent any
 
+    environment {
+        GIT_CREDENTIALS_ID = 'Phuong-test'   // ID Credential trong Jenkins
+        GIT_REPO = 'https://github.com/vipvippro608-alt/phuongtest.git'
+        GIT_BRANCH = 'main'
+    }
+
     parameters {
-        string(name: 'TARGET_PATH', defaultValue: 'test.txt', description: 'File/Folder cần xoá')
+        choice(name: 'ACTION', choices: ['delete', 'add'], description: 'Chọn hành động: delete hoặc add')
+        string(name: 'FILE_NAME', defaultValue: 'example.txt', description: 'Tên file cần thêm hoặc xoá')
+        text(name: 'FILE_CONTENT', defaultValue: 'Nội dung mặc định cho file mới', description: 'Chỉ dùng khi ACTION=add')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/vipvippro608-alt/phuongtest.git',
-                    branch: 'main',
-                    credentialsId: 'Phuongtest'   // đúng với ID bạn tạo trong Jenkins
+                git branch: "${GIT_BRANCH}",
+                    url: "${GIT_REPO}",
+                    credentialsId: "${GIT_CREDENTIALS_ID}"
             }
         }
 
-        stage('Delete file') {
+        stage('Process File') {
             steps {
-                sh "rm -rf ${params.TARGET_PATH}"
+                script {
+                    if (params.ACTION == 'delete') {
+                        sh """
+                            echo "Deleting file: ${FILE_NAME}"
+                            rm -f ${FILE_NAME} || true
+                        """
+                    } else if (params.ACTION == 'add') {
+                        sh """
+                            echo "Adding file: ${FILE_NAME}"
+                            echo "${FILE_CONTENT}" > ${FILE_NAME}
+                        """
+                    }
+                }
             }
         }
 
         stage('Commit & Push') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'Phuongtest', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                withCredentials([string(credentialsId: "${GIT_CREDENTIALS_ID}", variable: 'GIT_TOKEN')]) {
                     sh '''
-                        git config user.name "Jenkins Bot"
+                        git config user.name "jenkins-bot"
                         git config user.email "jenkins-bot@example.com"
 
                         git add -A
-                        git commit -m "auto delete ${TARGET_PATH}" || echo "Không có gì để commit"
+                        git commit -m "Auto: ${ACTION} file ${FILE_NAME}" || echo "Nothing to commit"
 
-                        # Push có kèm username + token
-                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/vipvippro608-alt/phuongtest.git HEAD:main
+                        git remote set-url origin https://x-access-token:${GIT_TOKEN}@github.com/vipvippro608-alt/phuongtest.git
+                        git push origin ${GIT_BRANCH}
                     '''
                 }
             }
